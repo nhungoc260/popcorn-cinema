@@ -1,11 +1,13 @@
 {
   "name": "popcorn-cinema-backend",
   "version": "1.0.0",
+  "description": "Popcorn Cinema - Backend API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "seed": "ts-node src/utils/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,6 +27,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.10.4",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }

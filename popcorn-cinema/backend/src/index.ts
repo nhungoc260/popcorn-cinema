@@ -11,6 +11,8 @@ import { connectDB } from './config/database';
 import { connectRedis } from './config/redis';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
+import movieRoutes from './routes/movie.routes';
+import theaterRoutes from './routes/theater.routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +29,8 @@ app.use(morgan('dev'));
 
 const API = '/api/v1';
 app.use(`${API}/auth`, authRoutes);
+app.use(`${API}/movies`, movieRoutes);
+app.use(`${API}/theaters`, theaterRoutes);
 
 app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 app.use(errorHandler);
