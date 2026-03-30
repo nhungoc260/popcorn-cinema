@@ -30,7 +30,7 @@ const MOVIES = [
     rating: 7.5,
     director: 'Pom Nguyễn',
     status: 'now_showing',
-    ageRating: 'C16',
+    ageRating: 'T16',
     releaseDate: new Date('2026-03-13'),
   },
   {
@@ -43,7 +43,7 @@ const MOVIES = [
     rating: 7.8,
     director: 'Mai Tài Phến',
     status: 'now_showing',
-    ageRating: 'C16',
+    ageRating: 'T16',
     releaseDate: new Date('2026-03-06'),
   },
   {
@@ -56,7 +56,7 @@ const MOVIES = [
     rating: 7.2,
     director: 'Kevin Williamson',
     status: 'now_showing',
-    ageRating: 'C18',
+    ageRating: 'T18',
     releaseDate: new Date('2026-03-20'),
   },
   {
@@ -82,7 +82,7 @@ const MOVIES = [
     rating: 7.0,
     director: 'Wisit Sasanatieng',
     status: 'now_showing',
-    ageRating: 'C16',
+    ageRating: 'T16',
     releaseDate: new Date('2026-03-27'),
   },
 ];
@@ -122,13 +122,13 @@ async function seed() {
     name: 'Popcorn Cinema - Gò Vấp',
     address: '456 Quang Trung, Gò Vấp',
     city: 'Hồ Chí Minh',
-    phone: '028-2345-6789',
+    phone: '0765099748',
   });
   const theater3 = await Theater.create({
     name: 'Popcorn Cinema - Hà Nội',
     address: '789 Hoàng Cầu, Đống Đa',
     city: 'Hà Nội',
-    phone: '024-1234-5678',
+    phone: '0765099748',
   });
   console.log('🏛  3 Theaters created');
 
