@@ -4,7 +4,7 @@ dotenv.config();
 
 import { User, Movie, Theater, Room } from '../models';
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/popcorn_cinema';
+const MONGO_URI = process.env.MONGODB_URI!;
 
 const MOVIES = [
   {
@@ -89,7 +89,8 @@ const MOVIES = [
 
 async function seed() {
   await mongoose.connect(MONGO_URI);
-  console.log('🌱 Connected. Seeding...');
+  console.log('🌱 Connected to:', MONGO_URI);
+  console.log('🌱 Seeding...');
 
   await Promise.all([
     User.deleteMany({}),
@@ -143,9 +144,9 @@ async function seed() {
 
   console.log('\n✅ Seed complete!');
   console.log('──────────────────────────────────');
-  console.log('👤 Admin: admin@popcorn.vn / admin123');
-  console.log('👤 Staff: staff@popcorn.vn / staff123');
-  console.log('👤 User:  user@popcorn.vn  / user123');
+  console.log('👤 Admin: admin@gmail.vn / admin123');
+  console.log('👤 Staff: staff@gmail.vn / staff123');
+  console.log('👤 User:  user@gmail.vn  / user123');
 
   await mongoose.disconnect();
 }
