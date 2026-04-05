@@ -1,0 +1,14 @@
+import { Router } from 'express';
+import { Seat } from '../models';
+
+const router = Router();
+
+router.get('/room/:roomId', async (req, res) => {
+  const seats = await Seat.find({ 
+    room: req.params.roomId, 
+    isActive: true 
+  }).sort({ row: 1, col: 1 });
+  res.json({ success: true, data: seats });
+});
+
+export default router;
