@@ -86,4 +86,35 @@ const RoomSchema = new Schema({
   isActive:   { type: Boolean, default: true },
 }, { timestamps: true });
 
+// Seat Model
+const SeatSchema = new Schema({
+  room:     { type: Schema.Types.ObjectId, ref: 'Room', required: true },
+  row:      { type: String, required: true },
+  col:      { type: Number, required: true },
+  label:    { type: String, required: true },
+  type:     { type: String, enum: ['standard', 'vip', 'couple', 'disabled'], default: 'standard' },
+  price:    { type: Number, default: 80000 },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+
+export const Seat = mongoose.model('Seat', SeatSchema);
+
+// Showtime Model
+const ShowtimeSchema = new Schema({
+  movie:       { type: Schema.Types.ObjectId, ref: 'Movie', required: true },
+  room:        { type: Schema.Types.ObjectId, ref: 'Room', required: true },
+  theater:     { type: Schema.Types.ObjectId, ref: 'Theater', required: true },
+  startTime:   { type: Date, required: true },
+  endTime:     { type: Date, required: true },
+  language:    { type: String, enum: ['sub', 'dub', 'original'], default: 'sub' },
+  format:      { type: String, enum: ['2D', '3D', 'IMAX', '4DX'], default: '2D' },
+  basePrice:   { type: Number, default: 80000 },
+  priceStandard: { type: Number, default: 80000 },
+  priceVip:    { type: Number, default: 120000 },
+  bookedSeats: [{ type: Schema.Types.ObjectId }],
+  lockedSeats: [{ seatId: Schema.Types.ObjectId, userId: Schema.Types.ObjectId, lockedAt: Date }],
+  isActive:    { type: Boolean, default: true },
+}, { timestamps: true });
+
+export const Showtime = mongoose.model('Showtime', ShowtimeSchema);
 export const Room = mongoose.model('Room', RoomSchema);
