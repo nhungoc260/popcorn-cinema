@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { User, Movie, Theater, Room } from '../models';
+import { User, Movie, Theater, Room, Showtime, Seat } from '../models';
 
-const MONGO_URI = process.env.MONGODB_URI!;
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/popcorn-cinema-group';
 
 const MOVIES = [
   {
@@ -97,6 +97,8 @@ async function seed() {
     Movie.deleteMany({}),
     Theater.deleteMany({}),
     Room.deleteMany({}),
+    Showtime.deleteMany({}),
+    Seat.deleteMany({}),
   ]);
   console.log('🗑  Cleared existing data');
 
@@ -109,7 +111,7 @@ async function seed() {
   console.log('👥 Users created');
 
   // Movies
-  await Movie.insertMany(MOVIES);
+  const movies = await Movie.insertMany(MOVIES);
   console.log('🎬 6 movies created (tháng 3/2026)');
 
   // Theaters
@@ -134,19 +136,96 @@ async function seed() {
   console.log('🏛  3 Theaters created');
 
   // Rooms
-  await Room.create([
-    { theater: theater1._id, name: 'Phòng 01 - Standard', type: 'standard', rows: 8, cols: 10, totalSeats: 80 },
-    { theater: theater1._id, name: 'Phòng 02 - VIP', type: 'vip', rows: 6, cols: 8, totalSeats: 48 },
-    { theater: theater2._id, name: 'Phòng 01 - Standard', type: 'standard', rows: 8, cols: 10, totalSeats: 80 },
-    { theater: theater3._id, name: 'Phòng 01 - Standard', type: 'standard', rows: 8, cols: 10, totalSeats: 80 },
-  ]);
+  const room1 = await Room.create({
+    theater: theater1._id,
+    name: 'Phòng 01 - Standard',
+    type: 'standard',
+    rows: 8,
+    cols: 10,
+    totalSeats: 80,
+  });
+  const room2 = await Room.create({
+    theater: theater1._id,
+    name: 'Phòng 02 - VIP',
+    type: 'vip',
+    rows: 6,
+    cols: 8,
+    totalSeats: 48,
+  });
+  await Room.create({
+    theater: theater2._id,
+    name: 'Phòng 01 - Standard',
+    type: 'standard',
+    rows: 8,
+    cols: 10,
+    totalSeats: 80,
+  });
+  await Room.create({
+    theater: theater3._id,
+    name: 'Phòng 01 - Standard',
+    type: 'standard',
+    rows: 8,
+    cols: 10,
+    totalSeats: 80,
+  });
   console.log('🚪 Rooms created');
+
+  // Seats for room1
+  const ROWS = ['A','B','C','D','E','F','G','H'];
+  const seatDocs: any[] = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 1; c <= 10; c++) {
+      const type = r >= 6 ? 'vip' : 'standard';
+      seatDocs.push({
+        room: room1._id,
+        row: ROWS[r],
+        col: c,
+        label: `${ROWS[r]}${c}`,
+        type,
+        price: type === 'vip' ? 130000 : 85000,
+      });
+    }
+  }
+  await Seat.insertMany(seatDocs);
+  console.log('💺 Seats created');
+
+  // Showtimes (3 ngày tới)
+  const showingMovies = movies.filter((m: any) => m.status === 'now_showing');
+  const showtimeDocs: any[] = [];
+
+  for (let day = 0; day < 3; day++) {
+    for (const movie of showingMovies.slice(0, 4)) {
+      const base = new Date();
+      base.setDate(base.getDate() + day);
+
+      for (let slot = 0; slot < 3; slot++) {
+        const start = new Date(base);
+        start.setHours(10 + slot * 3, 0, 0, 0);
+        const end = new Date(start.getTime() + ((movie as any).duration + 15) * 60000);
+
+        showtimeDocs.push({
+          movie: (movie as any)._id,
+          room: slot % 2 === 0 ? room1._id : room2._id,
+          theater: theater1._id,
+          startTime: start,
+          endTime: end,
+          language: slot === 0 ? 'sub' : 'dub',
+          format: slot === 2 ? '3D' : '2D',
+          basePrice: 85000,
+          priceStandard: 85000,
+          priceVip: 130000,
+        });
+      }
+    }
+  }
+  await Showtime.insertMany(showtimeDocs);
+  console.log(`🎟  ${showtimeDocs.length} showtimes created`);
 
   console.log('\n✅ Seed complete!');
   console.log('──────────────────────────────────');
-  console.log('👤 Admin: admin@gmail.vn / admin123');
-  console.log('👤 Staff: staff@gmail.vn / staff123');
-  console.log('👤 User:  user@gmail.vn  / user123');
+  console.log('👤 Admin: admin@popcorn.vn / admin123');
+  console.log('👤 Staff: staff@popcorn.vn / staff123');
+  console.log('👤 User:  user@popcorn.vn  / user123');
 
   await mongoose.disconnect();
 }
