@@ -118,3 +118,47 @@ const ShowtimeSchema = new Schema({
 
 export const Showtime = mongoose.model('Showtime', ShowtimeSchema);
 export const Room = mongoose.model('Room', RoomSchema);
+
+// Booking Model
+const BookingSchema = new Schema({
+  user:         { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  showtime:     { type: Schema.Types.ObjectId, ref: 'Showtime', required: true },
+  seats:        [{ type: Schema.Types.ObjectId, ref: 'Seat' }],
+  bookingCode:  { type: String, unique: true, required: true },
+  totalAmount:  { type: Number, required: true },
+  status:       { type: String, enum: ['pending', 'pending_payment', 'confirmed', 'cancelled'], default: 'pending' },
+  paymentId:    { type: Schema.Types.ObjectId, ref: 'Payment' },
+  createdAt:    { type: Date, default: Date.now },
+  expiredAt:    { type: Date },
+}, { timestamps: true });
+
+export const Booking = mongoose.model('Booking', BookingSchema);
+
+// Payment Model
+const PaymentSchema = new Schema({
+  booking:       { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
+  user:          { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  amount:        { type: Number, required: true },
+  method:        { type: String, enum: ['cash', 'vietqr', 'bank', 'momo'], required: true },
+  transactionId: { type: String, unique: true, required: true },
+  qrData:        { type: String },
+  status:        { type: String, enum: ['pending', 'pending_confirmation', 'customer_confirmed', 'success', 'failed'], default: 'pending' },
+  rejectReason:  { type: String },
+  paidAt:        { type: Date },
+}, { timestamps: true });
+
+export const Payment = mongoose.model('Payment', PaymentSchema);
+  startTime:   { type: Date, required: true },
+  endTime:     { type: Date, required: true },
+  language:    { type: String, enum: ['sub', 'dub', 'original'], default: 'sub' },
+  format:      { type: String, enum: ['2D', '3D', 'IMAX', '4DX'], default: '2D' },
+  basePrice:   { type: Number, default: 80000 },
+  priceStandard: { type: Number, default: 80000 },
+  priceVip:    { type: Number, default: 120000 },
+  bookedSeats: [{ type: Schema.Types.ObjectId }],
+  lockedSeats: [{ seatId: Schema.Types.ObjectId, userId: Schema.Types.ObjectId, lockedAt: Date }],
+  isActive:    { type: Boolean, default: true },
+}, { timestamps: true });
+
+export const Showtime = mongoose.model('Showtime', ShowtimeSchema);
+export const Room = mongoose.model('Room', RoomSchema);
