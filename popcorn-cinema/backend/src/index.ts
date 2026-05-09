@@ -19,9 +19,14 @@ import showtimeRoutes from './routes/showtime.routes';
 import bookingRoutes from './routes/booking.routes';
 import paymentRoutes from './routes/payment.routes';
 import seatRoutes from './routes/seat.routes';
+import adminRoutes from './routes/admin.routes';
 import userRoutes from './routes/user.routes';
 import reviewRoutes from './routes/review.routes';
 import couponRoutes from './routes/coupon.routes';
+import reportRoutes from './routes/report.routes';
+import aiRoutes from './routes/ai.routes';
+import membershipRoutes from './routes/membership.routes';
+import supportRoutes from './routes/support.routes';
 import { Promotion } from './models';
 
 const app = express();
@@ -48,10 +53,15 @@ app.use(`${API}/showtimes`, showtimeRoutes);
 app.use(`${API}/bookings`, bookingRoutes);
 app.use(`${API}/payments`, paymentRoutes);
 app.use(`${API}/seats`, seatRoutes);
+app.use(`${API}/admin`, adminRoutes);
 app.use(`${API}/users`, userRoutes);
 
 app.use(`${API}/movies/:movieId/reviews`, reviewRoutes);
 app.use(`${API}/coupons`, couponRoutes);
+app.use(`${API}/reports`, reportRoutes);
+app.use(`${API}/ai`, aiRoutes);
+app.use(`${API}/membership`, membershipRoutes);
+app.use(`${API}/support`, supportRoutes);
 
 app.get(`${API}/promotions`, async (_req, res) => {
   try {

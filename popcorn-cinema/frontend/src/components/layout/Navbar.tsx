@@ -8,6 +8,9 @@ import Logo from '../ui/Logo'
 import { useThemeStore } from '../../store/themeStore'
 import { authApi } from '../../api'
 import toast from 'react-hot-toast'
+import { useNotifications } from '../../hooks/useNotifications'
+import TierUpgradeModal from '../ui/TierUpgradeModal'
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -21,6 +24,8 @@ export default function Navbar() {
   const isDark = mode === 'dark'
   const notiRef = useRef<HTMLDivElement>(null)
 
+  const { notifications, unreadCount, markAllRead, markRead, clearAll } = useNotifications()
+
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -31,6 +36,15 @@ export default function Navbar() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // Lắng nghe thông báo nâng hạng mới → show popup
+  useEffect(() => {
+    const latest = notifications.find(n => n.type === 'tier_upgrade' && !n.read)
+    if (latest) {
+      setTierUpgrade({ tier: latest.meta?.tier, points: latest.meta?.points })
+      markRead(latest.id)
+    }
+  }, [notifications])
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20)
@@ -55,6 +69,23 @@ export default function Navbar() {
     { href: '/showtimes', label: 'Suất Chiếu' },
     { href: '/promotions',  label: '🎁 Khuyến mãi' },
   ]
+
+  const NOTI_ICONS: Record<string, string> = {
+    tier_upgrade: '🎉',
+    payment_confirmed: '✅',
+    payment_rejected: '❌',
+    booking_success: '🎬',
+  }
+
+  const handleNotiClick = (n: any) => {
+    markRead(n.id)
+    setNotiOpen(false)
+    if (n.type === 'payment_confirmed' || n.type === 'booking_success' || n.type === 'payment_rejected') {
+      navigate('/my-bookings')
+    } else if (n.type === 'tier_upgrade') {
+      navigate('/profile')
+    }
+  }
 
   return (
     <>
@@ -113,6 +144,26 @@ export default function Navbar() {
             {/* ── Chuông thông báo ── */}
             {token && user && (
               <div ref={notiRef} className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => { setNotiOpen(!notiOpen); setUserMenu(false); if (!notiOpen) markAllRead() }}
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+                  style={{
+                    background: notiOpen ? 'rgba(168,85,247,0.15)' : 'transparent',
+                    border: '1px solid var(--color-glass-border)',
+                    color: unreadCount > 0 ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  }}>
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black"
+                      style={{ background: '#F43F5E', color: 'white' }}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </motion.span>
+                  )}
+                </motion.button>
 
                 {/* Dropdown thông báo */}
                 <AnimatePresence>
@@ -138,7 +189,72 @@ export default function Navbar() {
                         <span className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>
                           Thông báo
                         </span>
-                      </div>                      
+                        {notifications.length > 0 && (
+                          <button onClick={clearAll}
+                            className="text-xs transition-colors"
+                            style={{ color: 'var(--color-text-muted)' }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#f43f5e'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}>
+                            Xoá tất cả
+                          </button>
+                        )}
+                      </div>
+
+                      {/* List */}
+                      <div className="overflow-y-auto flex-1">
+                        {notifications.length === 0 ? (
+                          <div className="text-center py-10">
+                            <Bell className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--color-text-muted)', opacity: 0.4 }} />
+                            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                              Chưa có thông báo
+                            </p>
+                          </div>
+                        ) : (
+                          notifications.map(n => (
+                            <div key={n.id}
+                              onClick={() => handleNotiClick(n)}
+                              className="flex gap-3 px-4 py-3 transition-colors cursor-pointer"
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(168,85,247,0.08)'}
+                              onMouseLeave={e => e.currentTarget.style.background = !n.read ? 'rgba(168,85,247,0.06)' : 'transparent'}
+                              style={{
+                                background: !n.read ? 'rgba(168,85,247,0.06)' : 'transparent',
+                                borderBottom: '1px solid var(--color-glass-border)',
+                              }}>
+                              <span className="text-xl flex-shrink-0 mt-0.5">{NOTI_ICONS[n.type] || '📣'}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text)' }}>
+                                  {n.title}
+                                </p>
+                                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                                  {n.message}
+                                </p>
+                                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                                  {n.createdAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                  {' · '}
+                                  {n.createdAt.toLocaleDateString('vi-VN')}
+                                </p>
+                              </div>
+                              {!n.read && (
+                                <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                                  style={{ background: 'var(--color-primary)' }} />
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      {notifications.length > 0 && (
+                        <div className="px-4 py-2.5 flex-shrink-0"
+                          style={{ borderTop: '1px solid var(--color-glass-border)' }}>
+                          <Link to="/my-bookings"
+                            onClick={() => setNotiOpen(false)}
+                            className="text-xs font-medium"
+                            style={{ color: 'var(--color-primary)' }}>
+                            Xem tất cả vé →
+                          </Link>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -263,6 +379,15 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </motion.nav>
+
+      {/* ── Tier upgrade popup ── */}
+      {tierUpgrade && tierUpgrade.tier && (
+        <TierUpgradeModal
+          tier={tierUpgrade.tier as any}
+          points={tierUpgrade.points}
+          onClose={() => setTierUpgrade(null)}
+        />
+      )}
     </>
   )
 }

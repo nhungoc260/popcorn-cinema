@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { Booking, Showtime, Loyalty, Seat, User } from '../models';
 import { AuthRequest } from '../middleware/errorHandler';
 import { lockSeats, releaseSeats, getSeatLockOwner } from '../config/redis';
+import { getIO, trackSeatLock } from '../socket/socketServer';
 
 // Email cố định của walk-in user (khách vãng lai tại quầy)
 const WALKIN_EMAIL = 'walkin@popcorn.local';
@@ -195,6 +196,28 @@ export async function createBooking(req: AuthRequest, res: Response) {
     }
 
     await lockSeats(showtimeId, userId, seatIds);
+
+    // FIX: Sau khi lock thành công, emit seat:locked tới tất cả client trong room
+    // (bao gồm nhân viên & admin đang xem cùng showtime)
+    const expiresAt = Date.now() + (parseInt(process.env.SEAT_LOCK_TTL || '300') * 1000);
+    try {
+      const io = getIO();
+      // Emit từng ghế để frontend cập nhật trạng thái realtime
+      seatIds.forEach(seatId => {
+        io.to(`showtime:${showtimeId}`).emit('seat:locked', {
+          seatId,
+          userId,
+          showtimeId,
+          expiresAt, // Frontend dùng để hiển thị countdown
+        });
+      });
+    } catch (e) {
+      // Socket chưa init (unit test) → bỏ qua
+    }
+
+    // FIX: Track để watcher phát hiện khi TTL hết và emit seat:released
+    trackSeatLock(showtimeId, seatIds);
+
     // Lấy giá từ showtime (admin đã set) hoặc room.prices, fallback về giá mặc định
     const showtimePrices: Record<string, number> = {
       standard: (showtime as any).priceStandard || (room.prices?.standard) || 85000,
@@ -221,6 +244,7 @@ export async function createBooking(req: AuthRequest, res: Response) {
       bookingCode,
       qrCode,
       status: 'pending',
+      expiresAt: new Date(expiresAt),
     });
 
     return res.status(201).json({ success: true, data: booking });
@@ -268,6 +292,20 @@ export async function cancelBooking(req: AuthRequest, res: Response) {
 
     // Giải phóng ghế trong Redis
     await releaseSeats(showtimeId, req.user!.id);
+
+    // FIX: Emit seat:released tới TẤT CẢ client để cập nhật realtime
+    // Nhân viên/khách đang xem cùng showtime sẽ thấy ghế trống ngay lập tức
+    try {
+      const io = getIO();
+      seatIds.forEach(seatId => {
+        io.to(`showtime:${showtimeId}`).emit('seat:released', {
+          seatId,
+          showtimeId,
+        });
+      });
+    } catch (e) {
+      // Socket chưa init → bỏ qua
+    }
 
     return res.json({ success: true, message: 'Booking cancelled' });
   } catch (err: any) {
@@ -453,6 +491,15 @@ export async function staffRefund(req: AuthRequest, res: Response) {
       ;(payment as any).refundedAt = new Date()
       await payment.save()
     }
+
+    // Giải phóng ghế trong Redis và emit socket
+    await releaseSeats(showtimeId, booking.user.toString())
+    try {
+      const io = getIO()
+      seatIds.forEach(seatId => {
+        io.to(`showtime:${showtimeId}`).emit('seat:released', { seatId, showtimeId })
+      })
+    } catch {}
 
     return res.json({
       success: true,

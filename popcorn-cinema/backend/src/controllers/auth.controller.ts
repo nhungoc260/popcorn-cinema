@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { User, OTP } from '../models';
+import { sendOtpEmail } from '../utils/emailService';
+import { sendOtpSms } from '../utils/smsService';
 import { AuthRequest } from '../middleware/errorHandler';
 
 const signAccess = (id: string, role: string, email: string) =>
@@ -157,6 +159,13 @@ export async function sendOtp(req: Request, res: Response) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await OTP.deleteMany({ email: email.toLowerCase() });
     await OTP.create({ email: email.toLowerCase(), otp: code, expiresAt });
+    const result = await sendOtpEmail(email, code, 'verify');
+    return res.json({
+      success: true,
+      message: 'OTP đã gửi đến email của bạn',
+      otp: code,
+      previewUrl: result.previewUrl || undefined,
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -193,6 +202,13 @@ export async function forgotPassword(req: Request, res: Response) {
     await OTP.deleteMany({ email: email.toLowerCase() });
     await OTP.create({ email: email.toLowerCase(), otp: hashedOtp, expiresAt });
     console.log(`\n${'='.repeat(50)}\n🔑 FORGOT PASSWORD OTP\n   Email: ${email}\n   OTP:   ${code}\n${'='.repeat(50)}\n`);
+    const result = await sendOtpEmail(email, code, 'forgot').catch(() => ({ previewUrl: null }));
+    return res.json({
+      success: true,
+      message: 'OTP đã được gửi đến email của bạn',
+      otp: code,
+      previewUrl: (result as any).previewUrl || undefined,
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -325,6 +341,8 @@ export async function phoneSendOtp(req: Request, res: Response) {
 
     await OTP.deleteMany({ email: normalized });
     await OTP.create({ email: normalized, otp: hashedOtp, expiresAt });
+    await sendOtpSms(normalized, code);
+
     return res.json({ success: true, message: `OTP đã gửi đến ${normalized}`, phone: normalized });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
