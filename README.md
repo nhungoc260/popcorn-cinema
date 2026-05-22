@@ -135,16 +135,6 @@ npm run dev             # Chạy frontend tại port 5173
 
 ---
 
-## 👤 Tài Khoản Demo
-
-| Role | Email | Mật khẩu | Trang sau đăng nhập |
-|------|-------|----------|---------------------|
-| 🔑 Admin | ngocadmin@gmail.vn | admin123 | /admin (Dashboard) |
-| 🧑‍💼 Nhân viên | ngocstaff@gmail.com | staff123 | /staff/counter (Quầy vé) |
-| 👤 Khách hàng | ngocuser@gmail.com | user123 | / (Trang chủ) |
-
----
-
 ## 🎛 Tính Năng Theo Role
 
 ### 🔑 Admin (`/admin`)
